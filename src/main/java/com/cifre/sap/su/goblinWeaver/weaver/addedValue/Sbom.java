@@ -50,16 +50,34 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
             // Fetch the directory listing for the Maven artifact's version folder
             List<String> availableFiles = getAvailableFiles(baseUrl);
 
+            // Prepare lists to collect all SBOM formats and links
+            Set<String> standardsSet = new HashSet<>();
+            List<String> linksList = new ArrayList<>();
+
             // Check if any of the available files match our SBOM criteria
             for (String fileName : availableFiles) {
-                if (matchesSbom(fileName)) {
+                String standards = matchesSbom(fileName);
+                if (standards != null) {
                     String sbomUrl = baseUrl + fileName;
-                    Map<String, String> sbomLink = new HashMap<>();
-                    sbomLink.put("sbomLink.......", sbomUrl);
-                    sbomLinks.add(sbomLink);
-                    log.info("Found SBOM: {}", sbomUrl);
+                    linksList.add(sbomUrl);
+                    standardsSet.add(standards);
+                    log.info("Found SBOM: {}, Format: {}", sbomUrl, String.join(",", standards));
                 }
             }
+
+            // Prepare the final result
+            Map<String, String> sbomData = new HashMap<>();
+            if (!standardsSet.isEmpty()) {
+                sbomData.put("isExist", "true");
+                sbomData.put("standard", String.join(",", standardsSet));
+                sbomData.put("link", String.join(",", linksList));
+            } else {
+                // No SBOMs were found
+                sbomData.put("isExist", "false");
+                sbomData.put("standard", "");
+                sbomData.put("link", "");
+            }
+            sbomLinks.add(sbomData);
         }
         return sbomLinks;
     }
@@ -112,26 +130,23 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
 
     /**
      * Checks if the file name contains any of the SBOM keywords and ends with a supported extension.
+     * Returns a list of SBOM standards ("spdx", "cyclonedx") if matched, otherwise an empty list.
      */
-    private boolean matchesSbom(String fileName) {
+    private String matchesSbom(String fileName) {
         for (String keyword : SBOM_KEYWORDS) {
             for (String extension : FILE_EXTENSIONS) {
                 if (fileName.toLowerCase().contains(keyword) && fileName.toLowerCase().endsWith("." + extension)) {
-                    return true;
+                    return keyword;
                 }
             }
         }
-        return false;
+        return null;
     }
+
 
     @Override
     public AddedValueEnum getAddedValueEnum() {
         return AddedValueEnum.SBOM;
-    }
-
-    @Override
-    public void setValue(String value) {
-
     }
 
     @Override
@@ -152,7 +167,9 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
                     JSONObject sbomJson = (JSONObject) obj;
 
                     Map<String, String> sbomMap = Map.of(
-                            "sbomLink", (String) sbomJson.get("sbomLink")
+                            "isExist", (String) sbomJson.get("isExist"),
+                            "standard", (String) sbomJson.get("standard"),
+                            "link", (String) sbomJson.get("link")
                     );
                     resultSet.add(sbomMap);
                 }
@@ -164,7 +181,7 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
     }
 
     @Override
-    public String valueToString(Set<Map<String, String>> value) {
+    public String valueToString(Set<Map<String, String>> value){
         JSONArray jsonArray = new JSONArray();
 
         for (Map<String, String> map : value) {
