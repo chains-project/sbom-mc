@@ -12,11 +12,12 @@ public enum AddedValueEnum {
     POPULARITY_1_YEAR,
     POPULARITY_1_YEAR_AGGREGATED,
     SPEED,
-    SBOM;
+    SBOM,
+    SBOM_AGGREGATED;
 
     public NodeType getTargetNodeType(){
         return switch (this) {
-            case CVE, CVE_AGGREGATED, FRESHNESS, FRESHNESS_AGGREGATED, POPULARITY_1_YEAR, POPULARITY_1_YEAR_AGGREGATED, SBOM -> NodeType.RELEASE;
+            case CVE, CVE_AGGREGATED, FRESHNESS, FRESHNESS_AGGREGATED, POPULARITY_1_YEAR, POPULARITY_1_YEAR_AGGREGATED, SBOM, SBOM_AGGREGATED -> NodeType.RELEASE;
             case SPEED -> NodeType.ARTIFACT;
         };
     }
@@ -31,12 +32,13 @@ public enum AddedValueEnum {
             case POPULARITY_1_YEAR_AGGREGATED -> Popularity1YearAggregated.class;
             case SPEED -> Speed.class;
             case SBOM -> Sbom.class;
+            case SBOM_AGGREGATED -> SbomAggregated.class;
         };
     }
 
     public boolean isAggregatedValue(){
         return switch (this) {
-            case CVE_AGGREGATED, FRESHNESS_AGGREGATED, POPULARITY_1_YEAR_AGGREGATED -> true;
+            case CVE_AGGREGATED, FRESHNESS_AGGREGATED, POPULARITY_1_YEAR_AGGREGATED, SBOM_AGGREGATED -> true;
             default -> false;
         };
     }

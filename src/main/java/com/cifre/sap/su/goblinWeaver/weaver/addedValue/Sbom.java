@@ -14,13 +14,14 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * This class has functions to aggregate entries with sbom information.
+ * This class has functions to aggregate entries with SBOM information.
  */
 public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
 
     // Define the key terms for the SBOM formats we're interested in
     private static final List<String> SBOM_KEYWORDS = Arrays.asList("cyclonedx", "spdx");
     private static final List<String> FILE_EXTENSIONS = Arrays.asList("json", "xml");
+    private static final List<String> HASH_EXTENSIONS = Arrays.asList("md5", "sha1", "sha256", "sha512");
     private final OkHttpClient httpConnector;
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -43,17 +44,15 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
             String dependencyGroupID = splitedGav[0];
             String dependencyArtifactID = splitedGav[1];
             String releaseVersion = splitedGav[2];
-
             // Construct base URL
             String baseUrl = constructBaseUrl(dependencyGroupID, dependencyArtifactID, releaseVersion);
-
             // Fetch the directory listing for the Maven artifact's version folder
             List<String> availableFiles = getAvailableFiles(baseUrl);
-
             // Prepare lists to collect all SBOM formats and links
             Set<String> standardsSet = new HashSet<>();
             List<String> linksList = new ArrayList<>();
-
+            List<String> signedList = new ArrayList<>();
+            List<String> hashAvailableList = new ArrayList<>();
             // Check if any of the available files match our SBOM criteria
             for (String fileName : availableFiles) {
                 String standards = matchesSbom(fileName);
@@ -62,20 +61,28 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
                     linksList.add(sbomUrl);
                     standardsSet.add(standards);
                     log.info("Found SBOM: {}, Format: {}", sbomUrl, String.join(",", standards));
+                    // Check for corresponding signature and hash files
+                    boolean isSigned = availableFiles.contains(fileName + ".asc");
+                    boolean isHashAvailable = containsHashFile(fileName, availableFiles);
+                    signedList.add(String.valueOf(isSigned));
+                    hashAvailableList.add(String.valueOf(isHashAvailable));
                 }
             }
-
             // Prepare the final result
             Map<String, String> sbomData = new HashMap<>();
             if (!standardsSet.isEmpty()) {
-                sbomData.put("isExist", "true");
+                sbomData.put("isAvailable", "true");
                 sbomData.put("standard", String.join(",", standardsSet));
                 sbomData.put("link", String.join(",", linksList));
+                sbomData.put("isSigned", String.join(",", signedList));
+                sbomData.put("isHashAvailable", String.join(",", hashAvailableList));
             } else {
                 // No SBOMs were found
-                sbomData.put("isExist", "false");
+                sbomData.put("isAvailable", "false");
                 sbomData.put("standard", "");
                 sbomData.put("link", "");
+                sbomData.put("isSigned", "");
+                sbomData.put("isHashAvailable", "");
             }
             sbomLinks.add(sbomData);
         }
@@ -118,7 +125,6 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
         String regex = "href=\"([^\"]+)\"";
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
         java.util.regex.Matcher matcher = pattern.matcher(htmlContent);
-
         while (matcher.find()) {
             String fileName = matcher.group(1);
             if (!fileName.endsWith("/")) { // Ignore directories
@@ -143,6 +149,17 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
         return null;
     }
 
+    /**
+     * Checks if any hash file exists for the given SBOM file.
+     */
+    private boolean containsHashFile(String fileName, List<String> availableFiles) {
+        for (String hashExt : HASH_EXTENSIONS) {
+            if (availableFiles.contains(fileName + "." + hashExt)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     @Override
     public AddedValueEnum getAddedValueEnum() {
@@ -160,16 +177,16 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
         try {
             JSONParser parser = new JSONParser();
             JSONObject jsonObject = (JSONObject) parser.parse(jsonString);
-
             JSONArray sbomArray = (JSONArray) jsonObject.get(getAddedValueEnum().getJsonKey());
             if (sbomArray != null) {
                 for (Object obj : sbomArray) {
                     JSONObject sbomJson = (JSONObject) obj;
-
                     Map<String, String> sbomMap = Map.of(
-                            "isExist", (String) sbomJson.get("isExist"),
+                            "isAvailable", (String) sbomJson.get("isAvailable"),
                             "standard", (String) sbomJson.get("standard"),
-                            "link", (String) sbomJson.get("link")
+                            "link", (String) sbomJson.get("link"),
+                            "isSigned", (String) sbomJson.get("isSigned"),
+                            "isHashAvailable", (String) sbomJson.get("isHashAvailable")
                     );
                     resultSet.add(sbomMap);
                 }
@@ -183,16 +200,13 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
     @Override
     public String valueToString(Set<Map<String, String>> value){
         JSONArray jsonArray = new JSONArray();
-
         for (Map<String, String> map : value) {
             JSONObject jsonObject = new JSONObject();
             jsonObject.putAll(map);
             jsonArray.add(jsonObject);
         }
-
         JSONObject finalObject = new JSONObject();
         finalObject.put(getAddedValueEnum().getJsonKey(), jsonArray);
-
         return finalObject.toJSONString().replace("\"", "\\\"");
     }
 }
