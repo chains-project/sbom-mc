@@ -35,10 +35,10 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
     }
 
     /**
-     * Get the Maven source jar links for the old and new dependency releases if they exist.
+     * Get the Sbom links and standards from maven central if they exist.
      */
-    public Set<Map<String, String>> getMavenSourceLinks(String gav) {
-        Set<Map<String, String>> sbomLinks = new HashSet<>();
+    public Set<Map<String, String>> getSbomLinks(String gav) {
+        Set<Map<String, String>> sbomLinkSet = new HashSet<>();
         String[] splitedGav = gav.split(":");
         if (splitedGav.length == 3) {
             String dependencyGroupID = splitedGav[0];
@@ -48,45 +48,27 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
             String baseUrl = constructBaseUrl(dependencyGroupID, dependencyArtifactID, releaseVersion);
             // Fetch the directory listing for the Maven artifact's version folder
             List<String> availableFiles = getAvailableFiles(baseUrl);
-            // Prepare lists to collect all SBOM formats and links
-            Set<String> standardsSet = new HashSet<>();
-            List<String> linksList = new ArrayList<>();
-            List<String> signedList = new ArrayList<>();
-            List<String> hashAvailableList = new ArrayList<>();
-            // Check if any of the available files match our SBOM criteria
+            // Prepare the final result map to hold sbom data
+            Map<String, String> sbomLinks = new HashMap<>();
             for (String fileName : availableFiles) {
-                String standards = matchesSbom(fileName);
-                if (standards != null) {
+                String standard = matchesSbom(fileName);
+                if (standard != null) {
+                    Map<String, String> sbomData = new HashMap<>();
                     String sbomUrl = baseUrl + fileName;
-                    linksList.add(sbomUrl);
-                    standardsSet.add(standards);
-                    log.info("Found SBOM: {}, Format: {}", sbomUrl, String.join(",", standards));
+                    log.info("Found SBOM: {}, Format: {}", sbomUrl, standard);
                     // Check for corresponding signature and hash files
                     boolean isSigned = availableFiles.contains(fileName + ".asc");
                     boolean isHashAvailable = containsHashFile(fileName, availableFiles);
-                    signedList.add(String.valueOf(isSigned));
-                    hashAvailableList.add(String.valueOf(isHashAvailable));
+                    // Populate the fields based on the SBOM count
+                    sbomData.put("isSigned", String.valueOf(isSigned));
+                    sbomData.put("isHashAvailable", String.valueOf(isHashAvailable));
+                    sbomData.put("standard", standard);
+                    sbomLinks.put(sbomUrl,sbomData.toString());
                 }
             }
-            // Prepare the final result
-            Map<String, String> sbomData = new HashMap<>();
-            if (!standardsSet.isEmpty()) {
-                sbomData.put("isAvailable", "true");
-                sbomData.put("standard", String.join(",", standardsSet));
-                sbomData.put("link", String.join(",", linksList));
-                sbomData.put("isSigned", String.join(",", signedList));
-                sbomData.put("isHashAvailable", String.join(",", hashAvailableList));
-            } else {
-                // No SBOMs were found
-                sbomData.put("isAvailable", "false");
-                sbomData.put("standard", "");
-                sbomData.put("link", "");
-                sbomData.put("isSigned", "");
-                sbomData.put("isHashAvailable", "");
-            }
-            sbomLinks.add(sbomData);
+            sbomLinkSet.add(sbomLinks);
         }
-        return sbomLinks;
+        return sbomLinkSet;
     }
 
     /**
@@ -168,7 +150,7 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
 
     @Override
     public void computeValue() {
-        value = getMavenSourceLinks(nodeId);
+        value = getSbomLinks(nodeId);
     }
 
     @Override
@@ -178,16 +160,17 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
             JSONParser parser = new JSONParser();
             JSONObject jsonObject = (JSONObject) parser.parse(jsonString);
             JSONArray sbomArray = (JSONArray) jsonObject.get(getAddedValueEnum().getJsonKey());
+
             if (sbomArray != null) {
                 for (Object obj : sbomArray) {
                     JSONObject sbomJson = (JSONObject) obj;
-                    Map<String, String> sbomMap = Map.of(
-                            "isAvailable", (String) sbomJson.get("isAvailable"),
-                            "standard", (String) sbomJson.get("standard"),
-                            "link", (String) sbomJson.get("link"),
-                            "isSigned", (String) sbomJson.get("isSigned"),
-                            "isHashAvailable", (String) sbomJson.get("isHashAvailable")
-                    );
+                    Map<String, String> sbomMap = new HashMap<>();
+                    // Dynamically map all key-value pairs in the JSON object
+                    for (Object keyObj : sbomJson.keySet()) {
+                        String key = (String) keyObj;
+                        String value = sbomJson.get(key) != null ? sbomJson.get(key).toString() : "";
+                        sbomMap.put(key, value);
+                    }
                     resultSet.add(sbomMap);
                 }
             }

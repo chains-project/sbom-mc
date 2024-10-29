@@ -29,7 +29,7 @@ public class SbomAggregated extends Sbom implements AggregateValue<Set<Map<Strin
 
     @Override
     public Set<Map<String, String>> computeMetric(String nodeId) {
-        return getMavenSourceLinks(nodeId);
+        return getSbomLinks(nodeId);
     }
 
     @Override
