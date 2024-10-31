@@ -58,12 +58,12 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
                     log.info("Found SBOM: {}, Format: {}", sbomUrl, standard);
                     // Check for corresponding signature and hash files
                     boolean isSigned = availableFiles.contains(fileName + ".asc");
-                    boolean isHashAvailable = containsHashFile(fileName, availableFiles);
+                    List<String> availableHashes = getAvailableHashes(fileName, availableFiles);
                     // Populate the fields based on the SBOM count
                     sbomData.put("isSigned", String.valueOf(isSigned));
-                    sbomData.put("isHashAvailable", String.valueOf(isHashAvailable));
+                    sbomData.put("isHashAvailable", availableHashes.isEmpty() ? "none" : String.join(", ", availableHashes));
                     sbomData.put("standard", standard);
-                    sbomLinks.put(sbomUrl,sbomData.toString());
+                    sbomLinks.put(sbomUrl, sbomData.toString());
                 }
             }
             sbomLinkSet.add(sbomLinks);
@@ -132,15 +132,16 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
     }
 
     /**
-     * Checks if any hash file exists for the given SBOM file.
+     * Retrieves the types of hash files available for the given SBOM file.
      */
-    private boolean containsHashFile(String fileName, List<String> availableFiles) {
+    private List<String> getAvailableHashes(String fileName, List<String> availableFiles) {
+        List<String> foundHashes = new ArrayList<>();
         for (String hashExt : HASH_EXTENSIONS) {
             if (availableFiles.contains(fileName + "." + hashExt)) {
-                return true;
+                foundHashes.add(hashExt);
             }
         }
-        return false;
+        return foundHashes;
     }
 
     @Override
@@ -181,7 +182,7 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
     }
 
     @Override
-    public String valueToString(Set<Map<String, String>> value){
+    public String valueToString(Set<Map<String, String>> value) {
         JSONArray jsonArray = new JSONArray();
         for (Map<String, String> map : value) {
             JSONObject jsonObject = new JSONObject();
