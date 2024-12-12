@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
  */
 public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
 
-    // Define the key terms for the SBOM formats we're interested in
     private static final List<String> SBOM_KEYWORDS = Arrays.asList("cyclonedx", "spdx");
     private static final List<String> FILE_EXTENSIONS = Arrays.asList("json", "xml");
     private static final List<String> HASH_EXTENSIONS = Arrays.asList("md5", "sha1", "sha256", "sha512");
@@ -88,7 +87,6 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
         Request request = new Request.Builder().url(baseUrl).build();
         try (Response response = httpConnector.newCall(request).execute()) {
             if (response.isSuccessful() && response.body() != null) {
-                // Assuming that the HTML page contains a directory listing (common for Maven Central)
                 String htmlContent = response.body().string();
                 fileList = parseHtmlForFileNames(htmlContent);
             }
@@ -103,13 +101,12 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
      */
     private List<String> parseHtmlForFileNames(String htmlContent) {
         List<String> fileNames = new ArrayList<>();
-        // Simple regex to extract file names from <a> tags (common in directory listings)
         String regex = "href=\"([^\"]+)\"";
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
         java.util.regex.Matcher matcher = pattern.matcher(htmlContent);
         while (matcher.find()) {
             String fileName = matcher.group(1);
-            if (!fileName.endsWith("/")) { // Ignore directories
+            if (!fileName.endsWith("/")) {
                 fileNames.add(fileName);
             }
         }
@@ -166,7 +163,6 @@ public class Sbom extends AbstractAddedValue<Set<Map<String, String>>> {
                 for (Object obj : sbomArray) {
                     JSONObject sbomJson = (JSONObject) obj;
                     Map<String, String> sbomMap = new HashMap<>();
-                    // Dynamically map all key-value pairs in the JSON object
                     for (Object keyObj : sbomJson.keySet()) {
                         String key = (String) keyObj;
                         String value = sbomJson.get(key) != null ? sbomJson.get(key).toString() : "";
