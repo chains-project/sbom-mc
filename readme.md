@@ -19,6 +19,7 @@ If you use the dataset dump present in Zenodo, please use a Neo4j database versi
 - POPULARITY_1_YEAR: Corresponds, for a specific release, the number of version released within a maximum of one year after the current graph date using the specified release.
 - POPULARITY_1_YEAR_AGGREGATED: Aggregate release and dependencies (with transitivity) POPULARITY_1_YEAR.
 - SPEED: Corresponds to the average number of releases per day of an artifact. More information here: https://benevol2022.github.io/papers/DamienJaime.pdf
+- SBOM: Corresponds to the existence of an SBOM in Maven Central.
 
 ## Memoization
 To avoid having to calculate the same metrics several times, added values are stored in the database graph once calculated.
