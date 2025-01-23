@@ -1,31 +1,18 @@
-# Goblin Weaver
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE.txt)
+# Software Bills of Materials in Maven Central
 
-The Weaver is a REST API for querying the Maven Central's dependency graph and enriching it by adding information to it according to the user's needs.
+This repository is an extension of the [Goblin Weaver](https://github.com/Goblin-Ecosystem/goblinWeaver) that allows augmenting the Maven Central dependency graph with Software Bills of Materials (SBOMs) published in Maven Central.
 
-This weaver use the Maven ecosystem dependency graph available here: https://zenodo.org/records/10605656
+The derived SBOM dataset can be downloaded from [Zenodo](https://zenodo.org/records/10047561). 
+This dataset includes:  
 
-This graph was created by the Goblin Miner, and can be updated by it: https://github.com/Goblin-Ecosystem/goblinMiner
+1. The collected SBOMs from Maven Central.  
+2. A Neo4J dump of Maven Central dependency graph augmented with SBOM URLs.  
 
-An example of usage of this tool is available here: https://github.com/Goblin-Ecosystem/mavenDatasetExperiences (on Weaver version 1.0.0).
-
-If you use the dataset dump present in Zenodo, please use a Neo4j database version 4.x.
+More details can be found in this paper: Software Bills of Materials in Maven Central (link to be added).
 
 ## Added values
-- CVE: We use the osv.dev dataset to get CVEs information (https://osv.dev/).
-- CVE_AGGREGATED: Aggregate release and dependencies (with transitivity) CVE.
-- FRESHNESS: Corresponds, for a specific release, to the number of more recent releases available and to the time elapsed in milliseconds between the specific release and the most recent release.
-- FRESHNESS_AGGREGATED: Aggregate release and dependencies (with transitivity) freshness.
-- POPULARITY_1_YEAR: Corresponds, for a specific release, the number of version released within a maximum of one year after the current graph date using the specified release.
-- POPULARITY_1_YEAR_AGGREGATED: Aggregate release and dependencies (with transitivity) POPULARITY_1_YEAR.
-- SPEED: Corresponds to the average number of releases per day of an artifact. More information here: https://benevol2022.github.io/papers/DamienJaime.pdf
+In addition to the [added values supported by the original Goblin weaver](https://github.com/Goblin-Ecosystem/goblinWeaver?tab=readme-ov-file#added-values), this work supports adding SBOM data to release nodes.
 - SBOM: Corresponds to the existence of an SBOM in Maven Central.
-
-## Memoization
-To avoid having to calculate the same metrics several times, added values are stored in the database graph once calculated.
-These new "AddedValue" type nodes are linked with "Release" or "Artifact" nodes.
-Due to their changing nature, routes are available in the API to remove them.
-However, the Weaver itself can delete them on change: when updating the CVE database, the "CVE" added values are deleted, when updating the database "FRESHNESS", "POPULARITY" and "SPEED" added values are deleted.
 
 ## Requirements
 - Java 17
@@ -53,15 +40,6 @@ You can add to the body query for the API a list of Added values, and it will en
 
 A swagger documentation of the API is available here:
 > http://localhost:8080/swagger-ui/index.html
-
-## Add new added values
-The Weaver is designed to be extensible, allowing a user to easily add information their research need.  
-Here's how to add an added value:
-1. Go to weaver/addedValue/AddedValueEnum and add the name of your new value.
-2. Fill the three methods of this enumeration with your new added value
-3. Create a new class that extends weaver/addedValue/AbstractAddedValue. 
-4. (optional) If you also want to create an aggregated value of your new added value, create a new class that extends your previous new class and implements the "AggregateValue" interface.
-5. Write your internal logic in this new class.
 
 ## Licensing
 Copyright 2024 SAP SE or an SAP affiliate company and Neo4j Ecosystem Weaver. Please see our [LICENSE](LICENSE) for copyright and license information.

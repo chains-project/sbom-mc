@@ -1,10 +1,6 @@
 # Data Overview
 
-This folder contains data collected from experiments using SBOMs (Software Bill of Materials) derived from Maven Central dependency graph. The derived SBOM dataset is available at: `https://zenodo.org/records/10047561`. 
-This dataset includes:  
-
-1. The collected SBOMs.  
-2. A Neo4J dump of Maven Central dependency graph augmented with SBOM URLs.  
+This folder contains data collected from experiments using SBOMs (Software Bill of Materials) derived from Maven Central dependency graph. 
 
 ---
 
@@ -48,6 +44,4 @@ This dataset includes:
 ---
 
 ### 3. **Scripts**  
-This folder contains the scripts used to extract the data mentioned above.
-
----
+The scripts folder contains the scripts used to extract the data mentioned above.
