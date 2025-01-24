@@ -8,7 +8,7 @@ This dataset includes:
 1. The collected SBOMs from Maven Central.  
 2. A Neo4J dump of Maven Central dependency graph augmented with SBOM URLs.  
 
-More details can be found in this paper: Software Bills of Materials in Maven Central (link to be added).
+More details can be found in this paper: [Software Bills of Materials in Maven Central](https://arxiv.org/abs/2501.13832).
 
 ## Added values
 In addition to the [added values supported by the original Goblin weaver](https://github.com/Goblin-Ecosystem/goblinWeaver?tab=readme-ov-file#added-values), this work supports adding SBOM data to release nodes.
